@@ -22,7 +22,7 @@ function sorvaus(R_alku::Float64,R_purilas::Float64,t0::Float64)
     # Muutetaan profiilien pisteet karteesiseen koordinaatistoon
     X_pölli = Array(Float64, n+1, k)
     Y_pölli = Array(Float64, n+1, k)
-    func_XY_pölli_serial!(X_pölli,Y_pölli,R_sektori, Θ_sektori)
+    func_XY_pölli_serial!(X_pölli,Y_pölli,R_sektori, Θ_sektori, n, k)
     #=@simd for j in range(1,k)
         @simd for i in 1:(n+1)
             @fastmath @inbounds X_pölli[i,j],Y_pölli[i,j] = func_cartesis(R_sektori[i,j],Θ_sektori[i])
