@@ -10,7 +10,7 @@ using PyPlot
 #Animaatiofunktio
 function sorvaus(R_alku::Float64,R_purilas::Float64,t0::Float64)
     # Jaetaan pölli k:aan profiiliin
-    k::Int64 = 86
+    k::Int64 = 13
     z = func_z_serial(k,w)
 
     # Kuvataan profiili polaarikoordinaateissa. Jokainen piste on muotoa (Θ,r)
@@ -30,14 +30,14 @@ function sorvaus(R_alku::Float64,R_purilas::Float64,t0::Float64)
     end=#
 
 
-#=    # Määrittää kuvaajan
+    # Määrittää kuvaajan
     fig = plt[:figure]()
     ax = fig[:add_subplot](111, projection="3d")
     # Määritellään koordinaatiston rajat
     ax[:set_xlim3d](-R_alku-0.03,R_alku+0.03)
     ax[:set_zlim3d](0,w+0.1)
     ax[:set_ylim3d](-R_alku-0.03,R_alku+0.03)
-=#
+
     # Kulma, jonka verran pöllin profiili pyörii per askel
     ω::Float64 = func_radians(89) #[rad]
 
@@ -78,7 +78,7 @@ function sorvaus(R_alku::Float64,R_purilas::Float64,t0::Float64)
 
     while R_sektori[1,1] >= R_purilas
         if ii == 1
-#=            ax[:view_init](elev=90, azim=-90)
+            ax[:view_init](elev=90, azim=-90)
             fig[:canvas][:draw]()
             # Piirretään pöllin alkuasema
             if k == 1
@@ -90,7 +90,7 @@ function sorvaus(R_alku::Float64,R_purilas::Float64,t0::Float64)
             #profiili_alku = ax[:scatter](X[1,1],Y[1,1],1, zdir="z", s=20, c="r", depthshade=false)
             # Terän alkuasema
             tera = ax[:plot_wireframe](X_terä,Y_terä, z_terä, color="r")
-=#
+
         elseif ii == 2
             # Lasketaan pöllin uusi kulma-asema
             func_Θ_sektori_uus_serial!(Θ_sektori_uus,Θ_sektori,ω,ii)
@@ -106,7 +106,7 @@ function sorvaus(R_alku::Float64,R_purilas::Float64,t0::Float64)
             @simd for j in range(1,length(tera_asema))
                         @fastmath @inbounds X_terä[j,1],Y_terä[j,1] = func_cartesis(tera_asema_uus[j,1],tera_kulma)
                 end
-    #=        # Poistetaan edellinen kuvaaja
+            # Poistetaan edellinen kuvaaja
             profile[:remove]()
             tera[:remove]()
             # Asetetaan datapisteille uudet asemat
@@ -117,7 +117,7 @@ function sorvaus(R_alku::Float64,R_purilas::Float64,t0::Float64)
             end
             #profiili_alku = ax[:scatter](X[1,1],Y[1,1],1, zdir="z", s=20, c="r", depthshade=false)
             tera = ax[:plot_wireframe](X_terä,Y_terä, z_terä, color="r")
-=#
+
         else
             # Katotaan kuinka moni piste menee terälinjan ohi per askel
             @fastmath Θ_sektori_edellinen = Θ_sektori_uus.-ω
@@ -181,7 +181,7 @@ function sorvaus(R_alku::Float64,R_purilas::Float64,t0::Float64)
             @simd for j in range(1,length(tera_asema))
                         @fastmath @inbounds X_terä[j,1],Y_terä[j,1] = func_cartesis(tera_asema_uus[j,1],tera_kulma)
                 end
-#=            # Poistetaan edellinen kuvaaja
+            # Poistetaan edellinen kuvaaja
             profile[:remove]()
             tera[:remove]()
             # Asetetaan datapisteille uudet asemat
@@ -192,12 +192,12 @@ function sorvaus(R_alku::Float64,R_purilas::Float64,t0::Float64)
             end
             #profiili_alku = ax[:scatter](X[1,1],Y[1,1],1, zdir="z", s=20, c="r", depthshade=false)
             tera = ax[:plot_wireframe](X_terä,Y_terä, z_terä, color="r")
-=#        end
+        end
         ii = ii + 1
         #ax[:draw_artist](profile)
         #ax[:draw_artist](profiili_alku)
-#        fig[:canvas][:update]()
-#        fig[:canvas][:flush_events]()
+        fig[:canvas][:update]()
+        fig[:canvas][:flush_events]()
         #sleep(0.001) #Julian oma sleep komento. Minimiaika on 1 ms
 
     end
