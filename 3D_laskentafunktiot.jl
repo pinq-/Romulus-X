@@ -38,7 +38,7 @@ end
 
 ###################################
 # Laskee pöllin pisteiden karteesiset koordinaatit. Serial = yhdellä prosessorilla
-function func_XY_pölli_serial!(X,Y,R_sektori, Θ_sektori)
+function func_XY_pölli_serial!(X,Y,R_sektori, Θ_sektori, n, k)
     @simd for j in range(1,k)
         @simd for i in 1:(n+1)
             @fastmath @inbounds X[i,j],Y[i,j] = func_cartesis(R_sektori[i,j],Θ_sektori[i])
