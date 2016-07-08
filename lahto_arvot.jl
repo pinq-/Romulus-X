@@ -45,7 +45,7 @@ const σy = 80e3                       #[N/m^2]
 const R_alku = 0.120                  #[m]
 
 # Purilaan säde
-const R_purilas = 0.095               #[m]
+const R_purilas = 0.105               #[m]
 
 #=
 # Kitkakerroin puun ja terän välillä (Muuttuu leikkausnopeuden funktiona semi-log skaalassa, MUTTA leikkausvoima ei vaikuta merkittävästi!!!!)

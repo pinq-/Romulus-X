@@ -10,7 +10,7 @@ using PyPlot
 #Animaatiofunktio
 function sorvaus(R_alku::Float64,R_purilas::Float64,t0::Float64)
     # Jaetaan pölli k:aan profiiliin
-    k::Int64 = 13
+    k::Int64 = 86
     z = func_z_serial(k,w)
 
     # Kuvataan profiili polaarikoordinaateissa. Jokainen piste on muotoa (Θ,r)
@@ -34,9 +34,9 @@ function sorvaus(R_alku::Float64,R_purilas::Float64,t0::Float64)
     fig = plt[:figure]()
     ax = fig[:add_subplot](111, projection="3d")
     # Määritellään koordinaatiston rajat
-    ax[:set_xlim3d](-R_alku-0.03,R_alku+0.03)
+    ax[:set_xlim3d](-R_alku-0.53,R_alku+0.53)
     ax[:set_zlim3d](0,w+0.1)
-    ax[:set_ylim3d](-R_alku-0.03,R_alku+0.03)
+    ax[:set_ylim3d](-R_alku-0.53,R_alku+0.53)
 
     # Kulma, jonka verran pöllin profiili pyörii per askel
     ω::Float64 = func_radians(89) #[rad]
@@ -73,7 +73,7 @@ function sorvaus(R_alku::Float64,R_purilas::Float64,t0::Float64)
 
     # Plotataan profiili, lasketaan joka aika-askeleella pisteille uusi kulma-asema ja päivitetään plottaus
     ii::Int64 = 1
-    Fc_sorvaus_kootut = Any[]
+    Fc_sorvaus_kootut = Array(Array{Float64},k-1)
     Θ_sektori_uus = copy(Θ_sektori)
 
     while R_sektori[1,1] >= R_purilas
@@ -135,35 +135,46 @@ function sorvaus(R_alku::Float64,R_purilas::Float64,t0::Float64)
                 # Ehto joka tsekkaa onko terä pöllin sisäpuolella IF TRUE -> lasketaan leikkausvoima ja lasketaan pöllin pisteelle uusi koordinaatti
                 @simd for l in range(1,length(piste))
                     if tera_asema_uus[j] <= R_sektori[piste[l],j]
-                        # Lasketaan leikkauspaksuus
-                        local t0_temp::Float64
-                        @fastmath @inbounds t0_temp = R_sektori[piste[l],j] - tera_asema_uus[j]
-                        # Lasketaan Z
-                        local Z::Float64
-                        @fastmath Z = func_Z(R,τ,t0_temp)
-                        # Ratkaistaan leikkaustason kulma φ
-                        local φ_1::Float64, φ_2::Float64
-                        @fastmath φ_1, φ_2 = func_φ(β_friction,α_rake,Z)
-                        # Lasketaan leikkausvenymä
-                        local γ::Float64
-                        @fastmath γ = func_γ(α_rake,φ_1)
-                        # Lasketaan leikkausvoimat
-                        local Fc_sorvaus_i::Float64
-                        @fastmath Fc_sorvaus_i = func_Fc(β_friction,φ_1,α_rake,τ,w,γ,t0_temp,R)
-                        push!(Fc_sorvaus,Fc_sorvaus_i)
+                        if j == k #Skipataan pöllin viimeisen pisteen kohdalla voiman laskenta, ettei lasketa ylimääräistä voimaa
+                            # Lasketaan leikkauspaksuus
+                            @fastmath @inbounds t0_temp = R_sektori[piste[l],j] - tera_asema_uus[j]
+                            # Lasketaan leikatun pisteen uusi asema
+                            @fastmath @inbounds R_sektori[piste[l],j] = R_sektori[piste[l],j] - t0_temp
+                        else
+                            # Lasketaan leikkauspaksuus
+                            local t0_temp::Float64
+                            @fastmath @inbounds t0_temp = R_sektori[piste[l],j] - tera_asema_uus[j]
+                            # Lasketaan Z
+                            local Z::Float64
+                            @fastmath Z = func_Z(R,τ,t0_temp)
+                            # Ratkaistaan leikkaustason kulma φ
+                            local φ_1::Float64, φ_2::Float64
+                            @fastmath φ_1, φ_2 = func_φ(β_friction,α_rake,Z)
+                            # Lasketaan leikkausvenymä
+                            local γ::Float64
+                            @fastmath γ = func_γ(α_rake,φ_1)
+                            # Lasketaan leikkausvoimat
+                            local Fc_sorvaus_i::Float64
+                            @fastmath Fc_sorvaus_i = func_Fc(β_friction,φ_1,α_rake,τ,w_terä,γ,t0_temp,R)
+                            push!(Fc_sorvaus,Fc_sorvaus_i)
 
-                        # Lasketaan leikatun pisteen uusi asema
-                        @fastmath @inbounds R_sektori[piste[l],j] = R_sektori[piste[l],j] - t0_temp
+                            # Lasketaan leikatun pisteen uusi asema
+                            @fastmath @inbounds R_sektori[piste[l],j] = R_sektori[piste[l],j] - t0_temp
+                        end
                     else
                         Fc_sorvaus_i = 0
                         push!(Fc_sorvaus,Fc_sorvaus_i)
                     end
                 end
                 # Tallennetaan teräpisteen voimatiedot
-                if length(Fc_sorvaus_kootut) < j
-                    push!(Fc_sorvaus_kootut,Fc_sorvaus)
+                if j == k
+                    #Skipataan viimeinen siivu, koska ei lasketa sen voimia
                 else
-                    append!(Fc_sorvaus_kootut[j],Fc_sorvaus)
+                    if ii == 3
+                        Fc_sorvaus_kootut[j] = copy(Fc_sorvaus)
+                    else
+                        append!(Fc_sorvaus_kootut[j],Fc_sorvaus)
+                    end
                 end
             end
 
@@ -194,8 +205,6 @@ function sorvaus(R_alku::Float64,R_purilas::Float64,t0::Float64)
             tera = ax[:plot_wireframe](X_terä,Y_terä, z_terä, color="r")
         end
         ii = ii + 1
-        #ax[:draw_artist](profile)
-        #ax[:draw_artist](profiili_alku)
         fig[:canvas][:update]()
         fig[:canvas][:flush_events]()
         #sleep(0.001) #Julian oma sleep komento. Minimiaika on 1 ms
@@ -205,5 +214,5 @@ function sorvaus(R_alku::Float64,R_purilas::Float64,t0::Float64)
     return Fc_sorvaus_kootut
 end #Function end
 
-#data = sorvaus(R_alku,R_purilas,t0)
+data = sorvaus(R_alku,R_purilas,t0)
 #EOF

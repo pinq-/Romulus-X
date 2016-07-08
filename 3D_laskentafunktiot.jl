@@ -244,3 +244,67 @@ end
     #q
     return nothing
 end
+
+###############
+# parallel funktio leikkausvoimien laskemista varten
+function func_Fc_parallel!(Fc_sorvaus_kootut, R_sektori, Θ_sektori_edellinen, Θ_sektori_uus, tera_kulma, tera_asema_uus, ii)
+    @sync begin
+        for p in procs(Fc_sorvaus_kootut)
+            @async remotecall_wait(Fc_shared_chunk!, p, Fc_sorvaus_kootut, R_sektori, Θ_sektori_edellinen, Θ_sektori_uus, tera_kulma, tera_asema_uus, ii)
+        end
+    end
+    #Θ_sektori_uus
+    return nothing
+end
+# Here's a convenience wrapper for a SharedArray implementation
+@everywhere Fc_shared_chunk!(q, R_sektori, Θ_sektori_edellinen, Θ_sektori_uus, tera_kulma, tera_asema_uus, ii) = Fc_chunk!(q, R_sektori, Θ_sektori_edellinen, Θ_sektori_uus, tera_kulma, tera_asema_uus, ii, myrange(q)...)
+
+@everywhere function Fc_chunk!(q, R_sektori, Θ_sektori_edellinen, Θ_sektori_uus, tera_kulma, tera_asema_uus, ii, irange, jrange)
+    #@show (irange, jrange)  # display so we can see what's happening
+    @simd for j in jrange
+        piste = Int64[]
+        Fc_sorvaus = Float64[]
+
+        @simd for i in irange
+            @fastmath @inbounds a1 = func_cartesis(R_sektori[i,j],Θ_sektori_edellinen[i]-tera_kulma)
+            @fastmath @inbounds a2 = func_cartesis(R_sektori[i,j],Θ_sektori_uus[i]-tera_kulma)
+            if sign(a1[1]) == sign(a2[1]) == 1 && sign(a1[2]) != sign(a2[2])
+                push!(piste,i)
+            end
+        end
+        # Ehto joka tsekkaa onko terä pöllin sisäpuolella IF TRUE -> lasketaan leikkausvoima ja lasketaan pöllin pisteelle uusi koordinaatti
+        @simd for l in range(1,length(piste))
+            if tera_asema_uus[j] <= R_sektori[piste[l],j]
+                # Lasketaan leikkauspaksuus
+                local t0_temp::Float64
+                @fastmath @inbounds t0_temp = R_sektori[piste[l],j] - tera_asema_uus[j]
+                # Lasketaan Z
+                local Z::Float64
+                @fastmath Z = func_Z(R,τ,t0_temp)
+                # Ratkaistaan leikkaustason kulma φ
+                local φ_1::Float64, φ_2::Float64
+                @fastmath φ_1, φ_2 = func_φ(β_friction,α_rake,Z)
+                # Lasketaan leikkausvenymä
+                local γ::Float64
+                @fastmath γ = func_γ(α_rake,φ_1)
+                # Lasketaan leikkausvoimat
+                local Fc_sorvaus_i::Float64
+                @fastmath Fc_sorvaus_i = func_Fc(β_friction,φ_1,α_rake,τ,w,γ,t0_temp,R)
+                push!(Fc_sorvaus,Fc_sorvaus_i)
+
+                # Lasketaan leikatun pisteen uusi asema
+                @fastmath @inbounds R_sektori[piste[l],j] = R_sektori[piste[l],j] - t0_temp
+            else
+                Fc_sorvaus_i = 0
+                push!(Fc_sorvaus,Fc_sorvaus_i)
+            end
+            # Tallennetaan teräpisteen voimatiedot
+            if ii == 3
+                Fc_sorvaus_kootut[j] = copy(Fc_sorvaus)
+            else
+                append!(Fc_sorvaus_kootut[j],Fc_sorvaus)
+            end
+        end
+    end
+    return nothing
+end
