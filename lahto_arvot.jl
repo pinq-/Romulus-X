@@ -1,6 +1,5 @@
 include("apufunktiot.jl")
 # SI-yksiköt
-@everywhere begin
 ################################
 #          Terägeometria       #
 ################################
@@ -105,6 +104,5 @@ const Ga = 0
 
 
 
-end
 ######################
 #EOF

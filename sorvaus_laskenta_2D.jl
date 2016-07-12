@@ -16,7 +16,7 @@ function sorvaus(R_alku::Float64,R_purilas::Float64,t0::Float64)
     Θ_sektori = Array(Float64, n) #zeros(n)
     # Jaetaan profiili n:ään pisteeseen
     @simd for i in range(1,n)
-        @fastmath @inbounds R_sektori[i] = R_alku * (rand(50:115)/100)
+        @fastmath @inbounds R_sektori[i] = R_alku * (rand(100:115)/100)
         @fastmath @inbounds Θ_sektori[i] = (2*pi / n) * i
     end
     # Lisätään profiilin dataan alkupiste, jotta plottauksessa profiili ei ole aukinainen
@@ -30,11 +30,11 @@ function sorvaus(R_alku::Float64,R_purilas::Float64,t0::Float64)
     ax[:set_ylim](0,R_alku+0.03)
 
     # Kulma, jonka verran pöllin profiili pyörii per askel
-    ω::Float64 = func_radians(1.1) #[rad]
+    ω::Float64 = func_radians(6.1) #[rad]
 
     # Terän paikka koordinaatistossa
     tera_asema::Float64 = 0.123 #R_sektori[n]
-    tera_kulma::Float64 = 0.0 #[rad]
+    tera_kulma::Float64 = func_radians(-45.0) #[rad]
 
     # Plotataan profiili, lasketaan joka aika-askeleella pisteille uusi kulma-asema ja päivitetään plottaus
     i::Int64 = 1
@@ -48,7 +48,7 @@ function sorvaus(R_alku::Float64,R_purilas::Float64,t0::Float64)
             # Terän alkuasema
             tera, = ax[:plot](tera_kulma,tera_asema,"k.")
             # Alkupiste pölliin, niin näkee pyörimisen paremmin
-            #profiili_alku, = ax[:plot](Θ_sektori[1],R_sektori[1],"k.")
+            profiili_alku, = ax[:plot](Θ_sektori[1],R_sektori[1],"k.")
 
         elseif i == 2
             #Fc_sorvaus_i = 0
@@ -61,13 +61,13 @@ function sorvaus(R_alku::Float64,R_purilas::Float64,t0::Float64)
             @fastmath tera_asema_uus::Float64 = tera_asema - (t0 / (2*pi) * ω*i)
             # Asetetaan datapisteille uudet asemat
             profile[:set_data](Θ_sektori_uus,R_sektori)
-            #profiili_alku[:set_data](Θ_sektori_uus[1],R_sektori[1])
+            profiili_alku[:set_data](Θ_sektori_uus[1],R_sektori[1])
             tera[:set_data](tera_kulma,tera_asema_uus)
 
         else
             # Katotaan kuinka moni piste menee terälinjan ohi per askel
             piste = Int64[]
-            @fastmath Θ_sektori_edellinen = Θ_sektori_uus.-ω
+            @fastmath Θ_sektori_edellinen = Θ_sektori_uus-ω
             @simd for k in range(1,n+1)
                 #global a1,a2
                 @fastmath @inbounds a1 = func_cartesis(R_sektori[k],Θ_sektori_edellinen[k]-tera_kulma)
@@ -115,7 +115,7 @@ function sorvaus(R_alku::Float64,R_purilas::Float64,t0::Float64)
                 @fastmath tera_asema_uus = tera_asema - (t0 / (2*pi) * ω*i)
                 # Asetetaan datapisteille uudet asemat
                 profile[:set_data](Θ_sektori_uus,R_sektori)
-                #profiili_alku[:set_data](Θ_sektori_uus[1],R_sektori[1])
+                profiili_alku[:set_data](Θ_sektori_uus[1],R_sektori[1])
                 tera[:set_data](tera_kulma,tera_asema_uus)
             end
         end
