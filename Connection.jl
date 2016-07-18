@@ -16,12 +16,10 @@ write(conn,params)
 
 ins=Array{Float64}(ninputs)
 outs=Array{Float64}(noutputs)
-#i=1
-#outs[1]=sin(i)
+
 println(")Connection established")
 while isopen(conn) #Kommunikointi
-#  i +=1
-#  outs[1]=sin(i)
+
   try
     ins = read(conn,Float64,ninputs)
     println(ins)
