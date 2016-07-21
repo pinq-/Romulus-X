@@ -2,22 +2,37 @@ include("leikkausvoimien_laskenta.jl")
 include("3D_laskentafunktiot.jl")
 include("lahto_arvot.jl")
 include("apufunktiot.jl")
+include("pollin_dynamics_funktiot.jl")
+include("pollidata.jl")
 
 using PyCall
 using PyPlot
 @pyimport matplotlib.cm as cm
 
 #Animaatiofunktio
-function sorvaus(R_alku::Float64,R_purilas::Float64,t0::Float64)
+function sorvaus(R_alku::Float64,R_purilas::Float64,t0::Float64, R_sektori)
+    # Kulma, jonka verran pöllin profiili pyörii per askel
+    ω::Float64 = func_radians(11.1) #[rad]
+
     # Jaetaan pölli k:aan profiiliin
-    k::Int64 = 486
-    z = func_z_serial(k,w)
+    k::Int64 = 20
+    Z_pölli = func_z_serial(k,w)
 
     # Kuvataan profiili polaarikoordinaateissa. Jokainen piste on muotoa (Θ,r)
     # Jaetaan profiili n+1:een pisteeseen
     # Pisteiden lukumäärä
     n::Int64 = 359
-    Θ_sektori, R_sektori = func_sektorit_serial(n,k,R_alku)
+    Θ_sektori, R_sektori_turha = func_sektorit_serial(n,k,R_alku)
+
+    # Alustetaan matriisit yms.
+    Θ_sektori_uus = copy(Θ_sektori)
+    Fc_sorvaus_kootut = Array(Array{Float64},k-1)
+    Fv_sorvaus_kootut = Array(Array{Float64},k-1)
+    tempvector = Array(Float64,0)
+    for i in range(1,k-1)
+        Fc_sorvaus_kootut[i] = copy(tempvector)
+        Fv_sorvaus_kootut[i] = copy(tempvector)
+    end
 
     # Muutetaan profiilien pisteet karteesiseen koordinaatistoon
     X_pölli = Array(Float64, n+1, k)
@@ -25,41 +40,43 @@ function sorvaus(R_alku::Float64,R_purilas::Float64,t0::Float64)
     func_XY_pölli_serial!(X_pölli,Y_pölli,R_sektori, Θ_sektori, n, k)
     #println("X_pölli[1,1] = ", X_pölli[1,1])
     #println("Y_pölli[1,1] = ", Y_pölli[1,1])
-    #=@simd for j in range(1,k)
-        @simd for i in 1:(n+1)
-            @fastmath @inbounds X_pölli[i,j],Y_pölli[i,j] = func_cartesis(R_sektori[i,j],Θ_sektori[i])
-        end
-    end=#
 
-
-#=    # Määrittää kuvaajan
-    fig = plt[:figure]()
-    ax = fig[:add_subplot](111, projection="3d")
-    # Määritellään koordinaatiston rajat
-    ax[:set_xlim3d](-R_alku-0.53,R_alku+0.53)
-    ax[:set_zlim3d](0,w+0.1)
-    ax[:set_ylim3d](-R_alku-0.53,R_alku+0.53)
-=#
-    # Kulma, jonka verran pöllin profiili pyörii per askel
-    ω::Float64 = func_radians(60) #[rad]
+    ##################################
+    # Pöllin dynamiikan alustus
+    ##################################
+    # Laskee kaikkien profiilien pinta-alat
+    A = func_area_elements(R_sektori, Θ_sektori, n, k)
+    # Laskee kaikkien elementtien tilavuudet ja tallentaa ne matriisiin
+    volume_elements = func_volume_elements(Z_pölli, A, n, k)
+    # Laskee koko pöllin tilavuuden
+    volume_total = func_volume_total(volume_elements)
+    # laskee kaikkien elementtien tilavuuskeskiöt ja tallentaa ne Array of Arrays:iin
+    CoV_elements = func_CoV_elements(X_pölli, Y_pölli, Z_pölli, A, n, k)
+    # Laskee koko pöllin tilavuuskeskiön
+    CoV_pölli = func_CoV_pölli(CoV_elements, volume_elements, volume_total, n, k)
+    # Laskee kaikkien elementtien inertiat
+    I_elements = func_inertias_elements(CoV_elements, X_pölli, Y_pölli, Z_pölli, ρ, n, k)
+    # Laskee koko pöllin inertian
+    I_total = func_inertias_pölli(CoV_elements, I_elements, volume_elements, ρ, CoV_pölli[1], CoV_pölli[2], CoV_pölli[3], n, k)
+    ##################################
 
     # Terän paikka koordinaatistossa
     tera_asema = Array(Float64, k)
-    z_terä = Array(Float64, length(tera_asema))
+    Z_terä = Array(Float64, length(tera_asema))
     w_terä = w / (length(tera_asema)-1)
-    #Terän päätepisteet. Jos eri niin looppi laskee terän pisteille etäisyyden origosta
-    tera_asema[1] = 0.13
-    tera_asema[k] = 0.13
+    #Terän päätepisteet. Jos eri niin looppi laskee terän pisteille oikean etäisyyden origosta
+    tera_asema[1] = R_sektori[1,1]+0.01 #0.13
+    tera_asema[k] = R_sektori[1,1]+0.01 #0.13
     tera_apukulma = atan( (tera_asema[k] - tera_asema[1])/w )
     # Lasketaan terän pituus
     @simd for i in range(1,length(tera_asema))
         if i == 1
-            z_terä[i] = 0.0
+            Z_terä[i] = 0.0
         elseif i < length(tera_asema)
-            @fastmath @inbounds z_terä[i] = w_terä*(i-1)
-            @fastmath @inbounds tera_asema[i] = tera_asema[1] + (z_terä[i] * tan(tera_apukulma))
+            @fastmath @inbounds Z_terä[i] = w_terä*(i-1)
+            @fastmath @inbounds tera_asema[i] = tera_asema[1] + (Z_terä[i] * tan(tera_apukulma))
         else
-            @fastmath @inbounds z_terä[i] = w_terä*(i-1)
+            @fastmath @inbounds Z_terä[i] = w_terä*(i-1)
         end
     end
     tera_kulma::Float64 = func_radians(0.0) #[rad]
@@ -75,41 +92,29 @@ function sorvaus(R_alku::Float64,R_purilas::Float64,t0::Float64)
 
     # Plotataan profiili, lasketaan joka aika-askeleella pisteille uusi kulma-asema ja päivitetään plottaus
     ii::Int64 = 1
-    Fc_sorvaus_kootut = Array(Array{Float64},k-1)
-    Fv_sorvaus_kootut = Array(Array{Float64},k-1)
-    Θ_sektori_uus = copy(Θ_sektori)
 
-#=    ax[:view_init](elev=90, azim=-90)
-    fig[:canvas][:draw]()
-    # Piirretään pöllin alkuasema
-    if k == 1
-        profile = ax[:plot_wireframe](X_pölli, Y_pölli, z)
-    else
-        profile = ax[:plot_surface](X_pölli, Y_pölli, z)
-    end
-    # Alkupiste pölliin, niin näkee pyörimisen paremmin
-    #profiili_alku = ax[:scatter](X[1,1],Y[1,1],1, zdir="z", s=20, c="r", depthshade=false)
-    # Terän alkuasema
-    tera = ax[:plot_wireframe](X_terä,Y_terä, z_terä, color="r")
-=#
+    # Määrittää kuvaajan
+    fig = plt[:figure]()
+    ax = fig[:add_subplot](111, projection="3d")
+    # Määritellään koordinaatiston rajat
+    ax[:set_xlim3d](-R_alku-0.53,R_alku+0.53)
+    ax[:set_zlim3d](0,w+0.1)
+    ax[:set_ylim3d](-R_alku-0.53,R_alku+0.53)
 
     while R_sektori[1,1] >= R_purilas
-        #=if ii == 1
+        if ii == 1
             ax[:view_init](elev=90, azim=-90)
             fig[:canvas][:draw]()
             # Piirretään pöllin alkuasema
             if k == 1
-                profile = ax[:plot_wireframe](X_pölli, Y_pölli, z)
+                profile = ax[:plot_wireframe](X_pölli, Y_pölli, Z_pölli)
             else
-                profile = ax[:plot_surface](X_pölli, Y_pölli, z)
+                profile = ax[:plot_surface](X_pölli, Y_pölli, Z_pölli)
             end
-            # Alkupiste pölliin, niin näkee pyörimisen paremmin
-            #profiili_alku = ax[:scatter](X[1,1],Y[1,1],1, zdir="z", s=20, c="r", depthshade=false)
             # Terän alkuasema
-            tera = ax[:plot_wireframe](X_terä,Y_terä, z_terä, color="r")
+            tera = ax[:plot_wireframe](X_terä,Y_terä, Z_terä, color="r")
 
-        elseif ii == 2=#
-        if ii == 1
+        elseif ii == 2
             # Lasketaan pöllin uusi kulma-asema
             func_Θ_sektori_uus_serial!(Θ_sektori_uus,Θ_sektori,ω,ii)
             #println("ii = ", ii)
@@ -129,17 +134,16 @@ function sorvaus(R_alku::Float64,R_purilas::Float64,t0::Float64)
             @simd for j in range(1,length(tera_asema))
                         @fastmath @inbounds X_terä[j,1],Y_terä[j,1] = func_cartesis(tera_asema_uus[j,1],tera_kulma)
                 end
-#=            # Poistetaan edellinen kuvaaja
+            # Poistetaan edellinen kuvaaja
             profile[:remove]()
             tera[:remove]()
             # Asetetaan datapisteille uudet asemat
             if k == 1
-                profile = ax[:plot_wireframe](X_pölli, Y_pölli, z)
+                profile = ax[:plot_wireframe](X_pölli, Y_pölli, Z_pölli)
             else
-                profile = ax[:plot_surface](X_pölli, Y_pölli, z)
+                profile = ax[:plot_surface](X_pölli, Y_pölli, Z_pölli)
             end
-            #profiili_alku = ax[:scatter](X[1,1],Y[1,1],1, zdir="z", s=20, c="r", depthshade=false)
-            tera = ax[:plot_wireframe](X_terä,Y_terä, z_terä, color="r")=#
+            tera = ax[:plot_wireframe](X_terä,Y_terä, Z_terä, color="r")
 
         else
             # Katotaan kuinka moni piste menee terälinjan ohi per askel
@@ -149,6 +153,7 @@ function sorvaus(R_alku::Float64,R_purilas::Float64,t0::Float64)
             #println("Θ_sektori_edellinen[1,1] = ", Θ_sektori_edellinen[1,1])
 
             @simd for j in range(1,k)
+                #println("j= ", j)
                 piste = Int64[]
                 Fc_sorvaus = Float64[]
                 Fv_sorvaus = Float64[]
@@ -209,13 +214,13 @@ function sorvaus(R_alku::Float64,R_purilas::Float64,t0::Float64)
                     if j == k
                         #Skipataan viimeinen siivu, koska ei lasketa sen voimia
                     else
-                        if ii == 2
+                        #=if ii == 3
                             Fc_sorvaus_kootut[j] = copy(Fc_sorvaus)
                             Fv_sorvaus_kootut[j] = copy(Fv_sorvaus)
-                        else
+                        else=#
                             append!(Fc_sorvaus_kootut[j],Fc_sorvaus)
                             append!(Fv_sorvaus_kootut[j],Fv_sorvaus)
-                        end
+                        #end
                     end
                 end
             end
@@ -234,29 +239,48 @@ function sorvaus(R_alku::Float64,R_purilas::Float64,t0::Float64)
             @fastmath tera_asema_uus = tera_asema - (t0 / (2*pi) * ω*ii)
             # Muutetaan uus asema karteesiseen koordinaatistoon
             @simd for j in range(1,length(tera_asema))
-                        @fastmath @inbounds X_terä[j,1],Y_terä[j,1] = func_cartesis(tera_asema_uus[j,1],tera_kulma)
-                end
-#=            # Poistetaan edellinen kuvaaja
+                @fastmath @inbounds X_terä[j,1],Y_terä[j,1] = func_cartesis(tera_asema_uus[j,1],tera_kulma)
+            end
+            ##################################
+            # Pöllin dynamiikan laskenta
+            ##################################
+            # Laskee kaikkien profiilien pinta-alat
+            A = func_area_elements(R_sektori, Θ_sektori, n, k)
+            # Laskee kaikkien elementtien tilavuudet ja tallentaa ne matriisiin
+            volume_elements = func_volume_elements(Z_pölli, A, n, k)
+            # Laskee koko pöllin tilavuuden
+            volume_total = func_volume_total(volume_elements)
+            # laskee kaikkien elementtien tilavuuskeskiöt ja tallentaa ne Array of Arrays:iin
+            CoV_elements = func_CoV_elements(X_pölli, Y_pölli, Z_pölli, A, n, k)
+            # Laskee koko pöllin tilavuuskeskiön
+            CoV_pölli = func_CoV_pölli(CoV_elements, volume_elements, volume_total, n, k)
+            # Laskee kaikkien elementtien inertiat
+            I_elements = func_inertias_elements(CoV_elements, X_pölli, Y_pölli, Z_pölli, ρ, n, k)
+            # Laskee koko pöllin inertian
+            I_total = func_inertias_pölli(CoV_elements, I_elements, volume_elements, ρ, CoV_pölli[1], CoV_pölli[2], CoV_pölli[3], n, k)
+            ##################################
+            # Kuvaajan piirto
+            ##################################
+            # Poistetaan edellinen kuvaaja
             profile[:remove]()
             tera[:remove]()
             # Asetetaan datapisteille uudet asemat
             if k == 1
-                profile = ax[:plot_wireframe](X_pölli, Y_pölli, z)
+                profile = ax[:plot_wireframe](X_pölli, Y_pölli, Z_pölli)
             else
-                profile = ax[:plot_surface](X_pölli, Y_pölli, z)
+                profile = ax[:plot_surface](X_pölli, Y_pölli, Z_pölli)
             end
-            #profiili_alku = ax[:scatter](X[1,1],Y[1,1],1, zdir="z", s=20, c="r", depthshade=false)
-            tera = ax[:plot_wireframe](X_terä,Y_terä, z_terä, color="r")=#
+            tera = ax[:plot_wireframe](X_terä,Y_terä, Z_terä, color="r")
         end
         ii = ii + 1
-        #fig[:canvas][:update]()
-        #fig[:canvas][:flush_events]()
+        fig[:canvas][:update]()
+        fig[:canvas][:flush_events]()
         #sleep(0.001) #Julian oma sleep komento. Minimiaika on 1 ms
-
     end
-
-    return Fc_sorvaus_kootut, Fv_sorvaus_kootut
+    #return Fc_sorvaus_kootut, Fv_sorvaus_kootut
+    return nothing
 end #Function end
 
 #Fc_data,Fv_data = sorvaus(R_alku,R_purilas,t0)
+sorvaus(R_alku,R_purilas,t0,R_sektori)
 #EOF
