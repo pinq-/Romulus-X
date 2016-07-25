@@ -12,10 +12,10 @@ using PyPlot
 #Animaatiofunktio
 function sorvaus(R_alku::Float64,R_purilas::Float64,t0::Float64, R_sektori)
     # Kulma, jonka verran pöllin profiili pyörii per askel
-    ω::Float64 = func_radians(11.1) #[rad]
+    ω::Float64 = func_radians(13.1) #[rad]
 
     # Jaetaan pölli k:aan profiiliin
-    k::Int64 = 20
+    k::Int64 = 60
     Z_pölli = func_z_serial(k,w)
 
     # Kuvataan profiili polaarikoordinaateissa. Jokainen piste on muotoa (Θ,r)
@@ -44,21 +44,21 @@ function sorvaus(R_alku::Float64,R_purilas::Float64,t0::Float64, R_sektori)
     ##################################
     # Pöllin dynamiikan alustus
     ##################################
-    # Laskee kaikkien profiilien pinta-alat
+#=    # Laskee kaikkien profiilien pinta-alat
     A = func_area_elements(R_sektori, Θ_sektori, n, k)
     # Laskee kaikkien elementtien tilavuudet ja tallentaa ne matriisiin
     volume_elements = func_volume_elements(Z_pölli, A, n, k)
     # Laskee koko pöllin tilavuuden
     volume_total = func_volume_total(volume_elements)
     # laskee kaikkien elementtien tilavuuskeskiöt ja tallentaa ne Array of Arrays:iin
-    CoV_elements = func_CoV_elements(X_pölli, Y_pölli, Z_pölli, A, n, k)
+    @time CoV_elements = func_CoV_elements(X_pölli, Y_pölli, Z_pölli, A, n, k)
     # Laskee koko pöllin tilavuuskeskiön
     CoV_pölli = func_CoV_pölli(CoV_elements, volume_elements, volume_total, n, k)
     # Laskee kaikkien elementtien inertiat
-    I_elements = func_inertias_elements(CoV_elements, X_pölli, Y_pölli, Z_pölli, ρ, n, k)
+    @time I_elements = func_inertias_elements(CoV_elements, X_pölli, Y_pölli, Z_pölli, ρ, n, k)
     # Laskee koko pöllin inertian
-    I_total = func_inertias_pölli(CoV_elements, I_elements, volume_elements, ρ, CoV_pölli[1], CoV_pölli[2], CoV_pölli[3], n, k)
-    ##################################
+    @time I_total = func_inertias_pölli(CoV_elements, I_elements, volume_elements, ρ, CoV_pölli[1], CoV_pölli[2], CoV_pölli[3], n, k)
+=#    ##################################
 
     # Terän paikka koordinaatistossa
     tera_asema = Array(Float64, k)
@@ -244,7 +244,7 @@ function sorvaus(R_alku::Float64,R_purilas::Float64,t0::Float64, R_sektori)
             ##################################
             # Pöllin dynamiikan laskenta
             ##################################
-            # Laskee kaikkien profiilien pinta-alat
+#=            # Laskee kaikkien profiilien pinta-alat
             A = func_area_elements(R_sektori, Θ_sektori, n, k)
             # Laskee kaikkien elementtien tilavuudet ja tallentaa ne matriisiin
             volume_elements = func_volume_elements(Z_pölli, A, n, k)
@@ -258,7 +258,7 @@ function sorvaus(R_alku::Float64,R_purilas::Float64,t0::Float64, R_sektori)
             I_elements = func_inertias_elements(CoV_elements, X_pölli, Y_pölli, Z_pölli, ρ, n, k)
             # Laskee koko pöllin inertian
             I_total = func_inertias_pölli(CoV_elements, I_elements, volume_elements, ρ, CoV_pölli[1], CoV_pölli[2], CoV_pölli[3], n, k)
-            ##################################
+=#            ##################################
             # Kuvaajan piirto
             ##################################
             # Poistetaan edellinen kuvaaja
@@ -282,5 +282,5 @@ function sorvaus(R_alku::Float64,R_purilas::Float64,t0::Float64, R_sektori)
 end #Function end
 
 #Fc_data,Fv_data = sorvaus(R_alku,R_purilas,t0)
-sorvaus(R_alku,R_purilas,t0,R_sektori)
+#sorvaus(R_alku,R_purilas,t0,R_sektori)
 #EOF

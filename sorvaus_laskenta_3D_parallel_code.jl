@@ -30,12 +30,12 @@ using PyPlot
 #Animaatiofunktio
 function sorvaus(R_alku::Float64, R_purilas::Float64, t0::Float64)
 
-    R_sektori::SharedArray{Float64} = SharedArray(Float64,n+1,k, init = R_sektori -> R_sektori[Base.localindexes(R_sektori)] = myid())
-    Θ_sektori::SharedArray{Float64} = SharedArray(Float64, n+1, init = Θ_sektori -> Θ_sektori[Base.localindexes(Θ_sektori)] = myid())
-    X_pölli::SharedArray{Float64} = SharedArray(Float64, n+1, k, init = X_pölli -> X_pölli[Base.localindexes(X_pölli)] = myid())
-    Y_pölli::SharedArray{Float64} = SharedArray(Float64, n+1, k, init = Y_pölli -> Y_pölli[Base.localindexes(Y_pölli)] = myid())
-    Θ_sektori_uus::SharedArray{Float64} = SharedArray(Float64, n+1, init = Θ_sektori_uus -> Θ_sektori_uus[Base.localindexes(Θ_sektori_uus)] = myid())
-    Θ_sektori_edellinen::SharedArray{Float64} = SharedArray(Float64, n+1, init = Θ_sektori_edellinen -> Θ_sektori_edellinen[Base.localindexes(Θ_sektori_edellinen)] = myid())
+    R_sektori::SharedArray{Float64} = SharedArray(Float64,n+1,k)
+    Θ_sektori::SharedArray{Float64} = SharedArray(Float64, n+1)
+    X_pölli::SharedArray{Float64} = SharedArray(Float64, n+1, k)
+    Y_pölli::SharedArray{Float64} = SharedArray(Float64, n+1, k)
+    Θ_sektori_uus::SharedArray{Float64} = SharedArray(Float64, n+1)
+    Θ_sektori_edellinen::SharedArray{Float64} = SharedArray(Float64, n+1)
     Fc_sorvaus_kootut::SharedArray{Float64} = SharedArray(Float64,1,k-1)
 
     # Lasketaan profiilien z-koordinaatit
