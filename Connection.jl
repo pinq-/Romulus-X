@@ -62,8 +62,8 @@ while isopen(conn) #Kommunikointi
     Rotation_matrix_1[2,2]=ins[4]^2-ins[5]^2+ins[6]^2-ins[7]^2
     Rotation_matrix_1[2,3]=2*(ins[6]*ins[7]-ins[4]*ins[5])
     Rotation_matrix_1[3,1]=2*(ins[5]*ins[7]-ins[4]*ins[6])
-    Rotation_matrix_1[2,3]=2*(ins[6]*ins[7]+ins[4]*ins[5])
-    Rotation_matrix_1[2,2]=ins[4]^2-ins[5]^2-ins[6]^2+ins[7]^2
+    Rotation_matrix_1[3,2]=2*(ins[6]*ins[7]+ins[4]*ins[5])
+    Rotation_matrix_1[3,3]=ins[4]^2-ins[5]^2-ins[6]^2+ins[7]^2
     write(conn,outs)
   catch
     break
