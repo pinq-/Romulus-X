@@ -18,7 +18,7 @@ const β_edge = func_radians(β_edge_deg)               #[rad]
 α_rake = pi/2 - δ_cut                       #[rad]
 
 # Leikkauspituus (Terän pituus, joka koskettaa pölliä == pöllin pituus)
-const w = 1.350                                     #[m]
+#const w = 1.350                                     #[m]
 
 # Terän kärjen pyöristyssäde
 const r = 5.0e-6                                  #[m]
