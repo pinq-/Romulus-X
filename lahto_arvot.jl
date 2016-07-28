@@ -17,8 +17,8 @@ const β_edge = func_radians(β_edge_deg)               #[rad]
 # Rake angle
 α_rake = pi/2 - δ_cut                       #[rad]
 
-# Leikkauspituus (Terän pituus, joka koskettaa pölliä)
-const w = 1.350                                     #[m]
+# Leikkauspituus (Terän pituus, joka koskettaa pölliä == pöllin pituus)
+#const w = 1.350                                     #[m]
 
 # Terän kärjen pyöristyssäde
 const r = 5.0e-6                                  #[m]
@@ -26,13 +26,14 @@ const r = 5.0e-6                                  #[m]
 ################################
 #        Materiaaliarvot       #
 ################################
+# Pinus sylvestris == metsämänty (Orlowski 2013)
 # Shear stress along the shear plane
-const τ = 470.0e6                      #[N/m^2]
+const τ = 22.636e6                      #[N/m^2]
 # Fracture toughness
-const R = 5.0e3                        #[J/m^2] = [Nm]
+const R = 0.840e3                        #[J/m^2] = [Nm]
 
 # Kimmomoduli (Tangentiaalisessa suunnassa)
-const E = 0.113 * 9.7e9               #[N/m^2]
+const E = 0.078 * 13.53e9               #[N/m^2]
 
 # Poissonin vakio
 const ν = 0.362                       #[-]
@@ -40,11 +41,15 @@ const ν = 0.362                       #[-]
 # Yield stress
 const σy = 80e3                       #[N/m^2]
 
+# Average density
+const ρ = 525.0                         #[kg/m^3]
+
 # Pöllin säde
 const R_alku = 0.120                  #[m]
 
 # Purilaan säde
-const R_purilas = 0.105               #[m]
+const R_purilas = 0.025               #[m]
+
 
 #=
 # Kitkakerroin puun ja terän välillä (Muuttuu leikkausnopeuden funktiona semi-log skaalassa, MUTTA leikkausvoima ei vaikuta merkittävästi!!!!)

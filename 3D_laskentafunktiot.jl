@@ -14,6 +14,20 @@ function func_z_serial(k::Int64,w::Float64)
     return z
 end
 
+# Laskee pöllin profiilien z-koordinaatit. Serial == yhdellä prosessorilla.
+function func_z_serial_mevea(k::Int64,w::Float64)
+    wi::Float64 = w / (k-1)
+    z = Array(Float64,k)
+    @simd for i in range(1,k)
+        if i == 1
+            z[i] = -w/2
+        else
+            @fastmath @inbounds z[i] = z[1] + wi*(i-1)
+        end
+    end
+    return z
+end
+
 #######################################
 # Laskee pöllin R_sektorin & Θ_sektorin. Serial == yhdellä prosessorilla
 function func_sektorit_serial(n::Int64,k::Int64,R_alku::Float64)
@@ -24,7 +38,7 @@ function func_sektorit_serial(n::Int64,k::Int64,R_alku::Float64)
         #Θ_sektori = 2*pi / n
         # Jaetaan profiili n:ään pisteeseen
         @simd for i in range(1,n)
-            @fastmath @inbounds R_sektori[i,j] = R_alku * (rand(89:105)/100)
+            @fastmath @inbounds R_sektori[i,j] = R_alku# * (rand(89:105)/100)
             @fastmath @inbounds Θ_sektori[i] = (2*pi / n) * i
         end
     end
