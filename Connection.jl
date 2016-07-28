@@ -52,18 +52,22 @@ while isopen(conn) #Kommunikointi
     #ins[21] Back up roll1 Global location y [m]
     #ins[22] Back up roll2 Global location x [m]
     #ins[23] Back up roll2 Global location y [m]
-
-
-
-    Rotation_matrix_1[1,1]=ins[4]^2+ins[5]^2-ins[6]^2-ins[7]^2
-    Rotation_matrix_1[1,2]=2*(ins[5]*ins[6]-ins[4]*ins[7])
-    Rotation_matrix_1[1,3]=2*(ins[5]*ins[7]+ins[4]*ins[6])
-    Rotation_matrix_1[2,1]=2*(ins[5]*ins[6]+ins[4]*ins[7])
-    Rotation_matrix_1[2,2]=ins[4]^2-ins[5]^2+ins[6]^2-ins[7]^2
-    Rotation_matrix_1[2,3]=2*(ins[6]*ins[7]-ins[4]*ins[5])
-    Rotation_matrix_1[3,1]=2*(ins[5]*ins[7]-ins[4]*ins[6])
-    Rotation_matrix_1[2,3]=2*(ins[6]*ins[7]+ins[4]*ins[5])
-    Rotation_matrix_1[2,2]=ins[4]^2-ins[5]^2-ins[6]^2+ins[7]^2
+    e0=ins[8]
+    e1=ins[9]
+    e2=ins[10]
+    e3=ins[11]
+    
+    Rotation_matrix_1[1,1]=1 - 2 * e2^2 - 2 * e3^2
+    Rotation_matrix_1[1,2]=2*(e1 * e2 - e0 * e3)
+    Rotation_matrix_1[1,3]=2*(e1 * e3 + e0 * e2)
+    
+    Rotation_matrix_1[2,1]=2*(e1 * e2 + e0 * e3)
+    Rotation_matrix_1[2,2]=1 - 2 * e1^2 - 2 * e3^2
+    Rotation_matrix_1[2,3]=2*(e2 * e3 - e0 * e1)
+    
+    Rotation_matrix_1[3,1]=2*(e1 * e3 - e0 * e2)
+    Rotation_matrix_1[3,2]=2*(e2 * e3 + e0 * e1)
+    Rotation_matrix_1[3,3]=1 - 2 * e1^2 - 2 * e2^2
     write(conn,outs)
   catch
     break
